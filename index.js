@@ -38,7 +38,7 @@ function render(elem, parentNode) {
     parentNode.appendChild(node);
 }
 
-function createNode(type, props, ...children) {
+function createElement(type, props, ...children) {
     console.log('childere', children);
     return {
         type,
@@ -46,14 +46,14 @@ function createNode(type, props, ...children) {
             ...props,
             children: children.map((child) => {
                 return typeof child === 'string'
-                    ? createTextNode(child)
+                    ? createTextElement(child)
                     : child;
             }),
         },
     };
 }
 
-function createTextNode(text) {
+function createTextElement(text) {
     return {
         type: 'TEXT_NODE',
         props: {
@@ -63,12 +63,12 @@ function createTextNode(text) {
     };
 }
 
-const element = createNode(
+const element = createElement(
     'div',
     { id: 'container' },
-    createNode('input', { value: 'name', type: 'text' }),
-    createNode('a', { href: '/index' }, 'link to index'),
-    createNode(
+    createElement('input', { value: 'name', type: 'text' }),
+    createElement('a', { href: '/index' }, 'link to index'),
+    createElement(
         'span',
         { className: 'description', onClick: () => console.log('click') },
         'write your name in here.',
