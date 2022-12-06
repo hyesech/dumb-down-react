@@ -9,74 +9,138 @@
  * */
 
 /* render function */
-function render(elem, parentNode) {
-    const { type, props } = elem;
-    const node =
-        type === 'TEXT_NODE'
-            ? document.createTextNode('')
-            : document.createElement(type);
+function createDom(fiber) {
+  const dom =
+    fiber.type === "TEXT_ELEMENT"
+      ? document.createTextNode("")
+      : document.createElement(fiber.type);
 
-    // Set EventListener
-    const isEvent = (key) => key.startsWith('on');
-    Object.keys(props)
-        .filter(isEvent)
-        .forEach((key) => {
-            const eventType = key.toLowerCase().substring(2);
-            node.addEventListener(eventType, props[key]);
-        });
+  // Set EventListener
+  const isEvent = (key) => key.startsWith("on");
+  Object.keys(fiber.type)
+    .filter(isEvent)
+    .forEach((key) => {
+      const eventType = key.toLowerCase().substring(2);
+      dom.addEventListener(eventType, fiber.props[key]);
+    });
 
-    // Set Attributes
-    const isAttribute = (key) => key !== 'children' && !isEvent(key);
-    Object.keys(props)
-        .filter(isAttribute)
-        .forEach((key) => {
-            node[key] = props[key];
-        });
+  // Set Attributes
+  const isAttribute = (key) => key !== "children" && !isEvent(key);
+  Object.keys(fiber.props)
+    .filter(isAttribute)
+    .forEach((key) => {
+      dom[key] = fiber.props[key];
+    });
 
-    // Render childrens
-    props.children.forEach((child) => render(child, node));
-    parentNode.appendChild(node);
+  return dom;
 }
 
-function createNode(type, props, ...children) {
-    console.log('childere', children);
-    return {
-        type,
-        props: {
-            ...props,
-            children: children.map((child) => {
-                return typeof child === 'string'
-                    ? createTextNode(child)
-                    : child;
-            }),
-        },
+function render(element, container) {
+  // set next work: 다음 work를 fiber 트리의 root로 설정
+  nextWork = {
+    dom: container,
+    props: {
+      children: [element],
+    },
+  };
+}
+
+let nextWork = null;
+function workLoop(deadline) {
+  let shouldYield = false;
+  while (nextWork && !shouldYield) {
+    nextWork = doNextWork(nextWork);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+  requestIdleCallback(workLoop);
+}
+
+requestIdleCallback(workLoop);
+
+function doNextWork(fiber) {
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+
+  if (fiber.parent) {
+    fiber.parent.dom.appendChild(fiber.dom);
+  }
+
+  // 각각의 child를 fiber로
+  const elements = fiber.props.children;
+  let idx = 0;
+  let prevSibling = null;
+
+  while (idx < elements.length) {
+    const element = elements[idx];
+    const newFiber = {
+      type: element.type,
+      props: element.props,
+      parent: fiber,
+      dom: null,
     };
+
+    // first child? or not 여부로 child fiber로 만들 것인지, sibling fiber로 만들 것인지 결정
+    if (idx === 0) {
+      fiber.child = newFiber;
+    } else {
+      prevSibling.sibling = newFiber;
+    }
+
+    prevSibling = newFiber;
+    idx++;
+  }
+
+  // 다음 작업 단위를 찾는다.
+  if (fiber.child) {
+    return fiber.child;
+  }
+  let nextFiber = fiber;
+  while (nextFiber) {
+    if (nextFiber.sibling) {
+      return nextFiber.sibling;
+    }
+    nextFiber = nextFiber.parent;
+  }
 }
 
-function createTextNode(text) {
-    return {
-        type: 'TEXT_NODE',
-        props: {
-            nodeValue: text,
-            children: [],
-        },
-    };
+function createElement(type, props, ...children) {
+  console.log("children", children);
+  return {
+    type,
+    props: {
+      ...props,
+      children: children.map((child) => {
+        return typeof child === "string" ? createTextElement(child) : child;
+      }),
+    },
+  };
 }
 
-const element = createNode(
-    'div',
-    { id: 'container' },
-    createNode('input', { value: 'name', type: 'text' }),
-    createNode('a', { href: '/index' }, 'link to index'),
-    createNode(
-        'span',
-        { className: 'description', onClick: () => console.log('click') },
-        'write your name in here.',
-    ),
+function createTextElement(text) {
+  return {
+    type: "TEXT_ELEMENT",
+    props: {
+      nodeValue: text,
+      children: [],
+    },
+  };
+}
+
+const element = createElement(
+  "div",
+  { id: "container" },
+  createElement("input", { value: "name", type: "text" }),
+  createElement("a", { href: "/index" }, "link to index"),
+  createElement(
+    "span",
+    { className: "description", onClick: () => console.log("click") },
+    "write your name in here."
+  )
 );
 
 /* Append node to parentNode */
-document.addEventListener('DOMContentLoaded', () => {
-    const rootElement = document.querySelector('#root');
-    render(element, rootElement);
+document.addEventListener("DOMContentLoaded", () => {
+  const rootElement = document.querySelector("#root");
+  render(element, rootElement);
 });
