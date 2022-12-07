@@ -17,7 +17,7 @@ function createDom(fiber) {
 
   // Set EventListener
   const isEvent = (key) => key.startsWith("on");
-  Object.keys(fiber.type)
+  Object.keys(fiber.props)
     .filter(isEvent)
     .forEach((key) => {
       const eventType = key.toLowerCase().substring(2);
@@ -139,7 +139,7 @@ const element = createElement(
   createElement("a", { href: "/index" }, "link to index"),
   createElement(
     "span",
-    { className: "description", onClick: () => console.log("click") },
+    { className: "description", onClick: () => alert("YOU CLICK THIS") },
     "write your name in here."
   )
 );
