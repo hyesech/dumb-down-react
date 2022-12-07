@@ -8,7 +8,7 @@
  *
  * */
 
-/* render function */
+/* Create DOM  */
 function createDom(fiber) {
   const dom =
     fiber.type === "TEXT_ELEMENT"
@@ -17,7 +17,7 @@ function createDom(fiber) {
 
   // Set EventListener
   const isEvent = (key) => key.startsWith("on");
-  Object.keys(fiber.type)
+  Object.keys(fiber.props)
     .filter(isEvent)
     .forEach((key) => {
       const eventType = key.toLowerCase().substring(2);
@@ -35,6 +35,7 @@ function createDom(fiber) {
   return dom;
 }
 
+/* Generate Single Fiber */
 function render(element, container) {
   // set next work: 다음 work를 fiber 트리의 root로 설정
   nextWork = {
@@ -46,6 +47,8 @@ function render(element, container) {
 }
 
 let nextWork = null;
+
+/* Loop */
 function workLoop(deadline) {
   let shouldYield = false;
   while (nextWork && !shouldYield) {
@@ -55,8 +58,7 @@ function workLoop(deadline) {
   requestIdleCallback(workLoop);
 }
 
-requestIdleCallback(workLoop);
-
+/* Set Unit of Fiber, Perform Task */
 function doNextWork(fiber) {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
@@ -66,7 +68,6 @@ function doNextWork(fiber) {
     fiber.parent.dom.appendChild(fiber.dom);
   }
 
-  // 각각의 child를 fiber로
   const elements = fiber.props.children;
   let idx = 0;
   let prevSibling = null;
@@ -80,7 +81,6 @@ function doNextWork(fiber) {
       dom: null,
     };
 
-    // first child? or not 여부로 child fiber로 만들 것인지, sibling fiber로 만들 것인지 결정
     if (idx === 0) {
       fiber.child = newFiber;
     } else {
@@ -104,6 +104,7 @@ function doNextWork(fiber) {
   }
 }
 
+/* Create Elements */
 function createElement(type, props, ...children) {
   console.log("children", children);
   return {
@@ -127,6 +128,10 @@ function createTextElement(text) {
   };
 }
 
+/* Schedule */
+requestIdleCallback(workLoop);
+
+/* Generate Element Tree */
 const element = createElement(
   "div",
   { id: "container" },
@@ -134,7 +139,7 @@ const element = createElement(
   createElement("a", { href: "/index" }, "link to index"),
   createElement(
     "span",
-    { className: "description", onClick: () => console.log("click") },
+    { className: "description", onClick: () => alert("YOU CLICK THIS") },
     "write your name in here."
   )
 );
